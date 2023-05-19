@@ -1,4 +1,4 @@
-# My first Project
+# My first Project:    Matrix-calculate
 
 this project is a library,which can Calculate Matrix with CPU and GPU(OpenCL).
 
