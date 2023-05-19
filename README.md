@@ -8,6 +8,6 @@ The library use GPL Licence
 
 this library would help someone learning OpenCL programming
 
-If you think it's good,you can give me a star to support me
+If you think it can help you,you can give me a star to support me
 
 # Thanks!
