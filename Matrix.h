@@ -38,7 +38,7 @@ typedef struct {
   free(M);\
 } while(0)
 
-	
+
 //this macro length can return char*(string) length
 #define length(s) ({\
 	printf("the string  ");\
