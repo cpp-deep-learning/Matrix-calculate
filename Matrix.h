@@ -16,29 +16,38 @@ extern "C" {
 	#define println(str) do{ printf("%s\n", str); } while(0)
 #endif
 
+	
+//this struct Matrix is used CPU Calculate
 typedef struct {
 	_Number x,y;
 	_M_value* v;
 } Matrix;
 
+	
+//this struct S_Matrix is used GPU(OpenCL) Calculate
 typedef struct {
 	_Number x,y;
 	float* v;
 } S_Matrix;
 
 //there are some macro,you can use it like function
+	
+//this macro freeMatrix can Release the Matrix's memory
 #define freeMatrix(M) do {\
   free(M->v);\
   free(M);\
 } while(0)
 
+	
+//this macro length can return char*(string) length
 #define length(s) ({\
 	printf("the string  ");\
 	int i=printf("%s",s);\
 	printf("  's length is:%d\n",i);\
 	i;\
 })
-
+	
+//this macro can return the end of file's location
 #define end(file) ({\
 	int locate=0;\
 	while(getc(file)!=EOF) {\
@@ -48,6 +57,7 @@ typedef struct {
 	locate;\
 })
 
+//this macro can create an new Matrix 
 #define CREATE0() ({\
 	Matrix* tmp=(Matrix*) malloc(sizeof(Matrix));\
 	printf("please input the Matrix's row:");\
@@ -58,6 +68,7 @@ typedef struct {
 	tmp;\
 })
 
+//this macro can create an new Matrix
 #define CREATE1(width,height) ({\
 	Matrix* target=(Matrix*) malloc(sizeof(Matrix));\
 	target->x=width,target->y=height;\
@@ -65,6 +76,8 @@ typedef struct {
 	target;\
 })
 
+	
+//this macro can setting the new Matrix
 #define SET(M) ({\
 	_Number i;\
 	if(M!=NULL) {\
@@ -97,6 +110,8 @@ _Number i;\
 	}\
 })
 
+	
+//this macro can change all the Matrix's value to num
 #define e(M,num) ({\
 	_Number i;\
 	if(M!=NULL) {\
@@ -110,6 +125,8 @@ _Number i;\
 	M;\
 })
 
+	
+//this macro can transpose the Matrix
 #define t(M) ({\
 	_Number i,h,w;\
 	if(M!=NULL) {\
@@ -132,6 +149,8 @@ _Number i;\
 	M;\
 })
 
+	
+//this macro can import data from value to Matrix M
 #define IMPORT(M,value,num) ({\
 	_Number i;\
 	if(M->x*M->y==num) {\
@@ -143,6 +162,8 @@ _Number i;\
 	M;\
 })
 
+	
+//this macro can display the Matrix
 #define  DISPLAY(M) do {\
 	_Number i;\
 	if(M!=NULL) {\
@@ -160,6 +181,8 @@ _Number i;\
 	}\
 } while(0)
 
+	
+//this function can create an new Matrix
 Matrix* create() {
 	Matrix* tmp=(Matrix*) malloc(sizeof(Matrix));
 	printf("please input the Matrix's row:");
@@ -170,6 +193,7 @@ Matrix* create() {
 	return tmp;
 }
 
+//this function can create an new Matrix
 Matrix* Create(_Number width,_Number height) {
 	Matrix* target=(Matrix*) malloc(sizeof(Matrix));
 	target->x=width,target->y=height;
@@ -177,6 +201,8 @@ Matrix* Create(_Number width,_Number height) {
 	return target;
 }
 
+	
+//this function can Set the new Matrix's value
 Matrix* Set(Matrix* M) {
 	_Number i;
 	if(M!=NULL) {
@@ -192,6 +218,7 @@ Matrix* Set(Matrix* M) {
 	return M;
 }
 
+//this function can import data from value to Matrix M
 Matrix* Import(Matrix* M,const _M_value* value,const _Number num) {
 	_Number i;
 	if(M->x*M->y==num) {
@@ -203,6 +230,7 @@ Matrix* Import(Matrix* M,const _M_value* value,const _Number num) {
 	return M;
 }
 
+//this function can format identity Matrix
 Matrix* Eye(Matrix* M) {
 	_Number i;
 	if(M->x==M->y) {
@@ -219,6 +247,8 @@ Matrix* Eye(Matrix* M) {
 	}
 }
 
+	
+//this function can change all the Matrix's value to target
 Matrix* E(Matrix* M,const _M_value target) {
 	_Number i;
 	if(M!=NULL) {
@@ -232,6 +262,8 @@ Matrix* E(Matrix* M,const _M_value target) {
 	return M;
 }
 
+	
+//this function can add two Matrix
 Matrix* add(const Matrix* M,const Matrix* m) {
 	_Number i;
 	if(M!=NULL&&m!=NULL&&(M->x)==(m->x)&&(M->y)==(m->y)) {
@@ -245,6 +277,8 @@ Matrix* add(const Matrix* M,const Matrix* m) {
 	else return NULL;
 }
 
+	
+//this function can return two Matrix subtractioned result
 Matrix* subtraction(const Matrix* M0,const Matrix* M1) {
 	_Number i;
 	if(M0!=NULL&&M1!=NULL&&M0->x==M1->x&&M0->y==M1->y) {
@@ -278,6 +312,7 @@ Matrix* subtraction(const Matrix* M0,const Matrix* M1) {
 })
 */
 
+//this function can transpose the Matrix
 Matrix* T(Matrix* M) {
 	_Number i,h,w;
 	if(M!=NULL) {
@@ -299,6 +334,8 @@ Matrix* T(Matrix* M) {
 	return M;
 }
 
+	
+//this function can multiply two Matrix
 Matrix* multiple(const Matrix* M0,const Matrix* M1) {
 	_Number n,k,h,w;
 	_M_value tmp;
@@ -344,6 +381,8 @@ Matrix* multiple(const Matrix* M0,const Matrix* M1) {
 })
 */
 
+	
+//the function can export data to the return value
 _M_value* Export(const Matrix* M) {
 	_Number i;
 	if(M!=NULL&&M->v!=NULL) {
@@ -375,6 +414,8 @@ void display(Matrix* M) {
 }
 */
 
+	
+//this function can get a file's String and save it in return value
 char* filestring(const char* filename) {
   FILE* f0=fopen(filename,"r+");
   long location=0;
@@ -391,6 +432,8 @@ char* filestring(const char* filename) {
   return tmp;
 }
 
+	
+//this function can create new Matrix to use OpenCL calculate
 S_Matrix* create0() {
 	S_Matrix* tmp=(S_Matrix*) malloc(sizeof(S_Matrix));
 	printf("please input the Matrix's row:");
@@ -401,6 +444,7 @@ S_Matrix* create0() {
 	return tmp;
 }
 
+//this function can create new Matrix to use OpenCL calculate
 S_Matrix* Create0(_Number width,_Number height) {
 	S_Matrix* target=(S_Matrix*) malloc(sizeof(S_Matrix));
 	target->x=width,target->y=height;
@@ -408,6 +452,8 @@ S_Matrix* Create0(_Number width,_Number height) {
 	return target;
 }
 
+	
+//this function can set the Matrix value to use OpenCL calculate
 S_Matrix* Set0(S_Matrix* M) {
 	_Number i;
 	if(M!=NULL) {
@@ -423,6 +469,7 @@ S_Matrix* Set0(S_Matrix* M) {
 	return M;
 }
 
+//this function can make kronecker product with Matrix A and B
 Matrix* kronecker(Matrix* A,Matrix* B) {
 	_Number i,j,k,l;
 	if(A == NULL || B == NULL || A->v == NULL || B->v == NULL || A->x <= 0 || A->y <= 0 || B->x <= 0 || B->y <= 0) {
@@ -444,6 +491,8 @@ Matrix* kronecker(Matrix* A,Matrix* B) {
 
 //support OpenCL
 
+	
+//this macro can check OpenCL API execute result
 #define check(input,str) ({\
     if(input!=CL_SUCCESS) {\
         printf("%s is err,the num is:%d",str,input);\
@@ -453,6 +502,8 @@ Matrix* kronecker(Matrix* A,Matrix* B) {
 
 typedef enum {operate,Multiple,eye,e} choice;
 
+	
+//this struct have the base of OpenCL executing environment
 typedef struct {
     cl_platform_id platform;
     cl_device_id device;
@@ -464,6 +515,8 @@ typedef struct {
     size_t *global_size,*local_size;
 } cl_group;
 
+	
+//this function start the OpenCL environment
 cl_group* format_group(const char* cl_filename) {
 
     cl_group* c0=(cl_group*)malloc(sizeof(cl_group));
@@ -487,6 +540,8 @@ cl_group* format_group(const char* cl_filename) {
     return c0;
 }
 
+	
+//this function delete the environment of OpenCL
 int cl_clearmem(cl_group* target) {
     *target->cl_err = clFlush(target->cmd_queue);
     check(*target->cl_err,"release memory");
@@ -506,6 +561,8 @@ int cl_clearmem(cl_group* target) {
     return 0;
 }
 
+	
+//this function using OpenCL to calculate Matrix
 int calculate(S_Matrix* a,S_Matrix* b) {
     cl_group* g0=format_group("M.cl");
     choice selection;
@@ -521,7 +578,8 @@ int calculate(S_Matrix* a,S_Matrix* b) {
             int option;
             println("please input the operate option:");
             scanf("%d",&option);
-
+		
+	//make OpenCL kernel Object and mem Object
             cl_kernel kernel=clCreateKernel(g0->program, "operate", g0->cl_err);
             cl_mem a0,a1,rlt,set;
 
@@ -529,11 +587,13 @@ int calculate(S_Matrix* a,S_Matrix* b) {
             a1=clCreateBuffer(g0->context,CL_MEM_READ_ONLY,b->x*b->y*sizeof(float),NULL,g0->cl_err);
             rlt=clCreateBuffer(g0->context,CL_MEM_WRITE_ONLY,result->x*result->y*sizeof(float),NULL,g0->cl_err);
             set=clCreateBuffer(g0->context,CL_MEM_READ_ONLY,sizeof(int),NULL,g0->cl_err);
-
+		
+	//copy the data to buffer
             *g0->cl_err=clEnqueueWriteBuffer(g0->cmd_queue,a0,CL_TRUE,0,a->x*a->y*sizeof(float),a->v,0,NULL,NULL);
             *g0->cl_err=clEnqueueWriteBuffer(g0->cmd_queue,a1,CL_TRUE,0,b->x*b->y*sizeof(float),b->v,0,NULL,NULL);
             *g0->cl_err=clEnqueueWriteBuffer(g0->cmd_queue,set,CL_TRUE,0,sizeof(int),&option,0,NULL,NULL);
-
+		
+	//set kernel arguments
             *g0->cl_err=clSetKernelArg(kernel,0,sizeof(cl_mem),&a0);
             *g0->cl_err=clSetKernelArg(kernel,1,sizeof(cl_mem),&a1);
             *g0->cl_err=clSetKernelArg(kernel,2,sizeof(cl_mem),&rlt);
@@ -544,9 +604,10 @@ int calculate(S_Matrix* a,S_Matrix* b) {
 
             *g0->global_size=a->x*a->y;
             *g0->local_size=a->x;
-
+	//execute kernel
             *g0->cl_err=clEnqueueNDRangeKernel(g0->cmd_queue,kernel,1,NULL,g0->global_size,g0->local_size,0,NULL,NULL);
 
+	//copy buffer data to global memory
             *g0->cl_err=clEnqueueReadBuffer(g0->cmd_queue,rlt,CL_TRUE,0,result->x*result->y*sizeof(float),result->v,0,NULL,NULL);
 
             DISPLAY(result);
