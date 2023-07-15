@@ -506,148 +506,216 @@ int cl_clearmem(cl_group* target) {
     return 0;
 }
 
-S_Matrix* calculate(S_Matrix* a,S_Matrix* b) {
-    cl_group* g0=format_group("M.cl");
+S_Matrix*
+calculate(S_Matrix* a, S_Matrix* b)
+{
+    cl_group* g0 = format_group("M.cl");
     choice selection;
     println("please input the type of your selection:");
-    scanf("%d",&selection);
-    while(selection!=operate&&selection!=Multiple&&selection!=eye&&selection!=e) {
+    scanf("%d", &selection);
+    while (selection != operate && selection != Multiple && selection != eye && selection != e) {
         println("value is invaild,please input true type of your selection:");
-        scanf("%d",&selection);
+        scanf("%d", &selection);
     }
-    switch(selection) {
-        case operate: {
-            S_Matrix* result=Create0(a->x,b->y);
-            int option;
-            println("please input the operate option:");
-            scanf("%d",&option);
+    switch (selection) {
+    case operate: {
+        S_Matrix* result = Create0(a->x, b->y);
+        free(result->v);
+        int option;
+        println("please input the operate option:");
+        scanf("%d", &option);
 
-            cl_kernel kernel=clCreateKernel(g0->program, "operate", g0->cl_err);
-            cl_mem v0,v1,rlt,set;
+        cl_kernel kernel = clCreateKernel(g0->program, "operate", g0->cl_err);
+        cl_mem v0, v1, rlt, set;
 
-            v0=clCreateBuffer(g0->context,CL_MEM_READ_ONLY,a->x*a->y*sizeof(float),NULL,g0->cl_err);
-            v1=clCreateBuffer(g0->context,CL_MEM_READ_ONLY,b->x*b->y*sizeof(float),NULL,g0->cl_err);
-            rlt=clCreateBuffer(g0->context,CL_MEM_WRITE_ONLY,result->x*result->y*sizeof(float),NULL,g0->cl_err);
-            set=clCreateBuffer(g0->context,CL_MEM_READ_ONLY,sizeof(int),NULL,g0->cl_err);
+        v0 = clCreateBuffer(g0->context,
+            CL_MEM_READ_ONLY|CL_MEM_USE_HOST_PTR,
+            a->x * a->y * sizeof(float),
+            a->v,
+            g0->cl_err);
+        v1 = clCreateBuffer(g0->context,
+            CL_MEM_READ_ONLY|CL_MEM_USE_HOST_PTR,
+            b->x * b->y * sizeof(float),
+            b->v,
+            g0->cl_err);
+        rlt = clCreateBuffer(g0->context,
+            CL_MEM_WRITE_ONLY,
+            result->x * result->y * sizeof(float),
+            NULL,
+            g0->cl_err);
+        set = clCreateBuffer(
+            g0->context, CL_MEM_READ_ONLY|CL_MEM_USE_HOST_PTR, sizeof(int),&option, g0->cl_err);
 
-            *g0->cl_err=clEnqueueWriteBuffer(g0->cmd_queue,v0,CL_TRUE,0,a->x*a->y*sizeof(float),a->v,0,NULL,NULL);
-            *g0->cl_err=clEnqueueWriteBuffer(g0->cmd_queue,v1,CL_TRUE,0,b->x*b->y*sizeof(float),b->v,0,NULL,NULL);
-            *g0->cl_err=clEnqueueWriteBuffer(g0->cmd_queue,set,CL_TRUE,0,sizeof(int),&option,0,NULL,NULL);
+        result->v=(float*)clEnqueueMapBuffer(g0->cmd_queue,rlt,CL_TRUE,CL_MAP_WRITE,0,result->x*result->y*sizeof(float),0,NULL,NULL,g0->cl_err);
 
-            *g0->cl_err=clSetKernelArg(kernel,0,sizeof(cl_mem),&v0);
-            *g0->cl_err=clSetKernelArg(kernel,1,sizeof(cl_mem),&v1);
-            *g0->cl_err=clSetKernelArg(kernel,2,sizeof(cl_mem),&rlt);
-            *g0->cl_err=clSetKernelArg(kernel,3,sizeof(cl_mem),&set);
+        *g0->cl_err = clSetKernelArg(kernel, 0, sizeof(cl_mem), &v0);
+        *g0->cl_err = clSetKernelArg(kernel, 1, sizeof(cl_mem), &v1);
+        *g0->cl_err = clSetKernelArg(kernel, 2, sizeof(cl_mem), &rlt);
+        *g0->cl_err = clSetKernelArg(kernel, 3, sizeof(cl_mem), &set);
 
-            g0->global_size=(size_t*)malloc(1*sizeof(size_t));
-            g0->local_size=(size_t*)malloc(1*sizeof(size_t));
+        g0->global_size = (size_t*)malloc(1 * sizeof(size_t));
+        g0->local_size = (size_t*)malloc(1 * sizeof(size_t));
 
-            *g0->global_size=a->x*a->y;
-            *g0->local_size=a->x;
+        *g0->global_size = a->x * a->y;
+        *g0->local_size = a->x;
 
-            *g0->cl_err=clEnqueueNDRangeKernel(g0->cmd_queue,kernel,1,NULL,g0->global_size,g0->local_size,0,NULL,NULL);
+        *g0->cl_err = clEnqueueNDRangeKernel(g0->cmd_queue,
+            kernel,
+            1,
+            NULL,
+            g0->global_size,
+            g0->local_size,
+            0,
+            NULL,
+            NULL);
 
-            *g0->cl_err=clEnqueueReadBuffer(g0->cmd_queue,rlt,CL_TRUE,0,result->x*result->y*sizeof(float),result->v,0,NULL,NULL);
+        *g0->cl_err=clEnqueueUnmapMemObject(g0->cmd_queue,rlt,result->v,0,NULL,NULL);
 
-            return result;
-            break;
-        }
-        case Multiple:{
-            S_Matrix* output=Create0(a->x,b->y);
-            long h[2]={(long)a->y,(long)b->y};
+        cl_clearmem(g0);
 
-            cl_kernel kernel=clCreateKernel(g0->program, "multiple", g0->cl_err);
-            cl_mem Matrix0,Matrix1,result,information;
+        return result;
+        break;
+    }
+    case Multiple: {
+        S_Matrix* output = Create0(a->x, b->y);
+        free(output->v);
+        long h[2] = { (long)a->y, (long)b->y };
 
-            Matrix0=clCreateBuffer(g0->context,CL_MEM_READ_ONLY,a->x*a->y*sizeof(float),NULL,g0->cl_err);
-            Matrix1=clCreateBuffer(g0->context,CL_MEM_READ_ONLY,b->x*b->y*sizeof(float),NULL,g0->cl_err);
-            result=clCreateBuffer(g0->context,CL_MEM_WRITE_ONLY,output->x*output->y*sizeof(float),NULL,g0->cl_err);
-            information=clCreateBuffer(g0->context,CL_MEM_READ_ONLY,2*sizeof(long),NULL,g0->cl_err);
+        cl_kernel kernel = clCreateKernel(g0->program, "multiple", g0->cl_err);
+        cl_mem Matrix0, Matrix1, result, information;
 
-            *g0->cl_err=clEnqueueWriteBuffer(g0->cmd_queue,Matrix0,CL_TRUE,0,a->x*a->y*sizeof(float),a->v,0,NULL,NULL);
-            *g0->cl_err=clEnqueueWriteBuffer(g0->cmd_queue,Matrix1,CL_TRUE,0,b->x*b->y*sizeof(float),b->v,0,NULL,NULL);
-            *g0->cl_err=clEnqueueWriteBuffer(g0->cmd_queue,information,CL_TRUE,0,2*sizeof(long),h,0,NULL,NULL);
+        Matrix0 = clCreateBuffer(g0->context,
+            CL_MEM_READ_ONLY|CL_MEM_USE_HOST_PTR,
+            a->x * a->y * sizeof(float),
+            a->v,
+            g0->cl_err);
+        Matrix1 = clCreateBuffer(g0->context,
+            CL_MEM_READ_ONLY|CL_MEM_USE_HOST_PTR,
+            b->x * b->y * sizeof(float),
+            b->v,
+            g0->cl_err);
+        result = clCreateBuffer(g0->context,
+            CL_MEM_WRITE_ONLY,
+            output->x * output->y * sizeof(float),
+            NULL,
+            g0->cl_err);
+        information = clCreateBuffer(
+            g0->context, CL_MEM_READ_ONLY|CL_MEM_USE_HOST_PTR, 2 * sizeof(long), h, g0->cl_err);
 
-            *g0->cl_err=clSetKernelArg(kernel,0,sizeof(cl_mem),&Matrix0);
-            *g0->cl_err=clSetKernelArg(kernel,1,sizeof(cl_mem),&Matrix1);
-            *g0->cl_err=clSetKernelArg(kernel,2,sizeof(cl_mem),&result);
-            *g0->cl_err=clSetKernelArg(kernel,3,sizeof(cl_mem),&information);
+        output->v=(float*)clEnqueueMapBuffer(g0->cmd_queue,result,CL_TRUE,CL_MAP_WRITE,0,output->x*output->y*sizeof(float),0,NULL,NULL,g0->cl_err);
 
-            g0->global_size=(size_t*)malloc(2*sizeof(size_t));
-            //g0->local_size=(size_t*)malloc(2*sizeof(size_t));
+        *g0->cl_err = clSetKernelArg(kernel, 0, sizeof(cl_mem), &Matrix0);
+        *g0->cl_err = clSetKernelArg(kernel, 1, sizeof(cl_mem), &Matrix1);
+        *g0->cl_err = clSetKernelArg(kernel, 2, sizeof(cl_mem), &result);
+        *g0->cl_err = clSetKernelArg(kernel, 3, sizeof(cl_mem), &information);
 
-            g0->global_size[0]=output->x;
-            g0->global_size[1]=output->y;
-            //*g0->local_size=a->x;
+        g0->global_size = (size_t*)malloc(2 * sizeof(size_t));
+        // g0->local_size=(size_t*)malloc(2*sizeof(size_t));
 
-            *g0->cl_err=clEnqueueNDRangeKernel(g0->cmd_queue,kernel,2,NULL,g0->global_size,NULL,0,NULL,NULL);
+        g0->global_size[0] = output->x;
+        g0->global_size[1] = output->y;
+        //*g0->local_size=a->x;
 
-            *g0->cl_err=clEnqueueReadBuffer(g0->cmd_queue,result,CL_TRUE,0,output->x*output->y*sizeof(float),output->v,0,NULL,NULL);
+        *g0->cl_err = clEnqueueNDRangeKernel(
+            g0->cmd_queue, kernel, 2, NULL, g0->global_size, NULL, 0, NULL, NULL);
 
-            return output;
-            break;
-        }
-        case eye:{
-            unsigned long* size=(unsigned long*)malloc(sizeof(unsigned long)*2);
-            size[0]=a->x,size[1]=a->y;
+        *g0->cl_err=clEnqueueUnmapMemObject(g0->cmd_queue,result,output->v,0,NULL,NULL);
 
-            cl_kernel kernel=clCreateKernel(g0->program, "eye", g0->cl_err);
+        cl_clearmem(g0);
 
-            cl_mem value,Info;
-            value=clCreateBuffer(g0->context,CL_MEM_READ_WRITE,a->x*a->y*sizeof(float),NULL,g0->cl_err);
-            Info=clCreateBuffer(g0->context,CL_MEM_READ_ONLY,2*sizeof(unsigned long),NULL,g0->cl_err);
+        return output;
+        break;
+    }
+    case eye: {
+        free(a->v);
+        unsigned long* size = (unsigned long*)malloc(sizeof(unsigned long) * 2);
+        size[0] = a->x, size[1] = a->y;
 
-            //*g0->cl_err=clEnqueueWriteBuffer(g0->cmd_queue,v,CL_TRUE,0,a->x*a->y*sizeof(float),a->v,0,NULL,NULL);
-            *g0->cl_err=clEnqueueWriteBuffer(g0->cmd_queue,Info,CL_TRUE,0,2*sizeof(unsigned long),size,0,NULL,NULL);
+        cl_kernel kernel = clCreateKernel(g0->program, "eye", g0->cl_err);
 
-            *g0->cl_err=clSetKernelArg(kernel,0,sizeof(cl_mem),&value);
-            *g0->cl_err=clSetKernelArg(kernel,1,sizeof(cl_mem),&Info);
+        cl_mem value, Info;
+        value = clCreateBuffer(g0->context,
+            CL_MEM_READ_WRITE,
+            a->x * a->y * sizeof(float),
+            NULL,
+            g0->cl_err);
+        Info = clCreateBuffer(g0->context,
+            CL_MEM_READ_ONLY|CL_MEM_USE_HOST_PTR,
+            2 * sizeof(unsigned long),
+            size,
+            g0->cl_err);
 
-            g0->global_size=(size_t*)malloc(2*sizeof(size_t));
-            g0->local_size=(size_t*)malloc(2*sizeof(size_t));
+        //*g0->cl_err=clEnqueueWriteBuffer(g0->cmd_queue,v,CL_TRUE,0,a->x*a->y*sizeof(float),a->v,0,NULL,NULL);
+       
+        a->v=(float*)clEnqueueMapBuffer(g0->cmd_queue,value,CL_TRUE,CL_MAP_WRITE,0,a->x*a->y*sizeof(float),0,NULL,NULL,g0->cl_err);
 
-            g0->global_size[0]=a->x,g0->global_size[1]=a->y;
-            g0->local_size[0]=a->x/2,g0->local_size[1]=a->y/2;
+        *g0->cl_err = clSetKernelArg(kernel, 0, sizeof(cl_mem), &value);
+        *g0->cl_err = clSetKernelArg(kernel, 1, sizeof(cl_mem), &Info);
 
-            *g0->cl_err=clEnqueueNDRangeKernel(g0->cmd_queue,kernel,2,NULL,g0->global_size,g0->local_size,0,NULL,NULL);
+        g0->global_size = (size_t*)malloc(2 * sizeof(size_t));
+        g0->local_size = (size_t*)malloc(2 * sizeof(size_t));
 
-            *g0->cl_err=clEnqueueReadBuffer(g0->cmd_queue,value,CL_TRUE,0,a->x*a->y*sizeof(float),a->v,0,NULL,NULL);
+        g0->global_size[0] = a->x, g0->global_size[1] = a->y;
+        g0->local_size[0] = a->x / 2, g0->local_size[1] = a->y / 2;
 
-            return size[0]==size[1]?a:NULL;
+        *g0->cl_err = clEnqueueNDRangeKernel(g0->cmd_queue,
+            kernel,
+            2,
+            NULL,
+            g0->global_size,
+            g0->local_size,
+            0,
+            NULL,
+            NULL);
 
-            break;
-        }
-        case e:{
-            float target;
-            println("please input the target value:");
-            scanf("%f",&target);
+        *g0->cl_err=clEnqueueUnmapMemObject(g0->cmd_queue,value,a->v,0,NULL,NULL);
 
-            cl_kernel kernel=clCreateKernel(g0->program, "e", g0->cl_err);
+        cl_clearmem(g0);
 
-            cl_mem data,content;
-            data=clCreateBuffer(g0->context,CL_MEM_READ_WRITE,a->x*a->y*sizeof(float),NULL,g0->cl_err);
-            content=clCreateBuffer(g0->context,CL_MEM_READ_ONLY,sizeof(float),NULL,g0->cl_err);
+        return size[0] == size[1] ? a : NULL;
 
-            *g0->cl_err=clEnqueueWriteBuffer(g0->cmd_queue,content,CL_TRUE,0,sizeof(float),&target,0,NULL,NULL);
+        break;
+    }
+    case e: {
+        free(a->v);
+        float target;
+        println("please input the target value:");
+        scanf("%f", &target);
 
-            *g0->cl_err=clSetKernelArg(kernel,0,sizeof(cl_mem),&data);
-            *g0->cl_err=clSetKernelArg(kernel,1,sizeof(cl_mem),&content);
+        cl_kernel kernel = clCreateKernel(g0->program, "e", g0->cl_err);
 
-            g0->global_size=(size_t*)malloc(sizeof(size_t));
-            *g0->global_size=a->x*a->y;
+        cl_mem data, content;
+        data = clCreateBuffer(g0->context,
+            CL_MEM_READ_WRITE,
+            a->x * a->y * sizeof(float),
+            NULL,
+            g0->cl_err);
+        content = clCreateBuffer(
+            g0->context, CL_MEM_READ_ONLY|CL_MEM_USE_HOST_PTR, sizeof(float), &target, g0->cl_err);
 
-            *g0->cl_err=clEnqueueNDRangeKernel(g0->cmd_queue,kernel,1,NULL,g0->global_size,NULL,0,NULL,NULL);
+        a->v=(float*)clEnqueueMapBuffer(g0->cmd_queue,data,CL_TRUE,CL_MAP_WRITE,0,a->x*a->y*sizeof(float),0,NULL,NULL,g0->cl_err);
 
-            *g0->cl_err=clEnqueueReadBuffer(g0->cmd_queue,data,CL_TRUE,0,a->x*a->y*sizeof(float),a->v,0,NULL,NULL);
+        *g0->cl_err = clSetKernelArg(kernel, 0, sizeof(cl_mem), &data);
+        *g0->cl_err = clSetKernelArg(kernel, 1, sizeof(cl_mem), &content);
 
-            return a;
+        g0->global_size = (size_t*)malloc(sizeof(size_t));
+        *g0->global_size = a->x * a->y;
 
-            break;
-        }
-        default:{
-            println("the program error!!!");
-            return NULL;
-        }//goto exit;
+        *g0->cl_err = clEnqueueNDRangeKernel(
+            g0->cmd_queue, kernel, 1, NULL, g0->global_size, NULL, 0, NULL, NULL);
+
+        *g0->cl_err=clEnqueueUnmapMemObject(g0->cmd_queue,data,a->v,0,NULL,NULL);
+
+        cl_clearmem(g0);
+
+        return a;
+
+        break;
+    }
+    default: {
+        println("the program error!!!");
+        return NULL;
+    } // goto exit;
     }
     /*exit: {
         println("the program error!!!");
