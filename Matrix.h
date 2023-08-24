@@ -767,7 +767,6 @@ calculate(S_Matrix* a, S_Matrix* b)
 #include <new>
 #include <vector>
 
-
 typedef unsigned long long Integer;
 typedef long double Double;
 
@@ -810,7 +809,8 @@ public:
     {
         this->rows = M.rows;
         this->column = M.column;
-        this->value = M.value;
+        this->value = new Double[rows * column];
+        std::memcpy(this->value, M.value, sizeof(Double) * rows * column);
     }
 
     ~Matrix()
@@ -949,21 +949,29 @@ T(const Matrix& M)
 Double&
 Matrix::operator()(Integer x0, Integer y0)
 {
-    if (x0 > rows || y0 > column)
+    if (x0 > rows || y0 > column) {
         std::cout << "error" << std::endl;
-    else
+        Double tmp=0;
+        return tmp;
+    }
+    else {
         std::cout << "the Matrix[" << x0 << "]"
                   << "[" << y0 << "]is:" << value[(x0 - 1) * column + (y0 - 1)]
                   << std::endl;
-    return value[(x0 - 1) * column + (y0 - 1)];
+        return value[(x0 - 1) * column + (y0 - 1)];
+    }
 }
 
 Matrix&
 Matrix::operator=(const Matrix& M)
 {
-    this->rows = M.rows;
-    this->column = M.column;
-    this->value = M.value;
+    if (this != &M) {
+        this->rows = M.rows;
+        this->column = M.column;
+        delete[] value; // Release previous memory
+        this->value = new Double[rows * column];
+        std::memcpy(this->value, M.value, sizeof(Double) * rows * column);
+    }
     return *this;
 }
 
@@ -1291,7 +1299,7 @@ Matrix Matrix::operator-(const Matrix& B)
 
 Matrix& Eye(const Integer I)
 {
-    Matrix A(I, I);
+    Matrix A(I);
     A = calculate(A, 50);
     return A;
 }
@@ -1355,10 +1363,10 @@ Matrix::operator*(const Matrix& M)
 Matrix&
 Eye(const Integer& num)
 {
-    Matrix* m0 = new Matrix(num);
+    Matrix m0(num);
     for (Integer i = 0; i < num * num; i++)
-        m0->value[i] = i / num == i - (i / num) * num ? 1 : 0;
-    return *m0;
+        m0.value[i] = i / num == i - (i / num) * num ? 1 : 0;
+    return m0;
 }
 
 #endif
